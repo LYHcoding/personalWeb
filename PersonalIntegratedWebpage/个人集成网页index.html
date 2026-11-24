@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>我的集成页 · Personal Portal</title>
+<meta name="description" content="个人集成网页：常用入口、今日待办、便签与专注计时器，数据保存在本机浏览器。" />
+<style>
+  :root {
+    --paper: #f6f2ea;
+    --surface: #fffdf9;
+    --surface-2: #f1ece1;
+    --ink: #221f1a;
+    --ink-soft: #6b6357;
+    --line: #ddd5c6;
+    --accent: #b5562d;
+    --accent-soft: #f0d9cd;
+    --ok: #3d7a52;
+    --shadow: 0 1px 2px rgba(34,31,26,.06), 0 8px 24px rgba(34,31,26,.07);
+    --radius: 14px;
+  }
+  [data-theme="dark"] {
+    --paper: #16150f;
+    --surface: #201e18;
+    --surface-2: #2a271f;
+    --ink: #f0ece2;
+    --ink-soft: #a79f8f;
+    --line: #3a3629;
+    --accent: #e2793f;
+    --accent-soft: #43301f;
+    --ok: #74b189;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 28px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(120% 80% at 100% 0%, var(--accent-soft) 0%, transparent 55%),
+      var(--paper);
+    color: var(--ink);
+    font: 15px/1.6 "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+    padding: 28px 20px 64px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  header.top {
+    display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-end;
+    justify-content: space-between; margin-bottom: 22px;
+  }
+  .greet h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); letter-spacing: -.5px; }
+  .greet p { margin: 6px 0 0; color: var(--ink-soft); font-size: 14px; }
+  .clock { text-align: right; font-variant-numeric: tabular-nums; }
+  .clock b { display: block; font-size: 30px; letter-spacing: 1px; }
+  .clock span { color: var(--ink-soft); font-size: 13px; }
+
+  button, input, textarea, select { font: inherit; color: inherit; }
+  .btn {
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    padding: 8px 14px; border-radius: 999px; cursor: pointer; transition: .15s;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { filter: brightness(1.08); color: #fff; }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--ink-soft); padding: 4px 8px; }
+  .btn.ghost:hover { color: var(--accent); border-color: transparent; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .grid { display: grid; gap: 18px; grid-template-columns: 320px 1fr; align-items: start; }
+  .col { display: grid; gap: 18px; }
+  .cards { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+
+  section.card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px;
+  }
+  .card h2 {
+    margin: 0 0 14px; font-size: 15px; letter-spacing: .5px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .card h2 .tag { font-size: 12px; color: var(--ink-soft); font-weight: 400; }
+
+  /* 身份卡 */
+  .id { display: flex; gap: 14px; align-items: center; }
+  .avatar {
+    width: 56px; height: 56px; border-radius: 16px; flex: none;
+    background: var(--accent); color: #fff; display: grid; place-items: center;
+    font-size: 24px; font-weight: 700;
+  }
+  .id [contenteditable] { border-radius: 6px; padding: 1px 5px; outline: none; }
+  .id [contenteditable]:hover { background: var(--surface-2); }
+  .id .name { font-size: 18px; font-weight: 700; }
+  .id .role { color: var(--ink-soft); font-size: 13px; }
+  .hint { margin: 12px 0 0; font-size: 12px; color: var(--ink-soft); }
+
+  /* 搜索 + 链接 */
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .row input, .row select {
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 10px; padding: 9px 12px; flex: 1 1 120px; min-width: 0;
+  }
+  textarea {
+    width: 100%; background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 12px; resize: vertical; min-height: 74px;
+  }
+  .group-title { margin: 16px 0 8px; font-size: 12px; letter-spacing: 1.5px; color: var(--ink-soft); }
+  .links { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .link {
+    display: flex; align-items: center; gap: 9px; padding: 10px 11px;
+    border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2);
+    text-decoration: none; color: inherit; transition: .15s; position: relative;
+  }
+  .link:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .fav { width: 20px; height: 20px; flex: none; border-radius: 6px; background: var(--accent); color: #fff;
+    font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+  .link .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+  .link .x { position: absolute; right: 5px; top: 5px; border: 0; background: none; color: var(--ink-soft);
+    cursor: pointer; font-size: 15px; line-height: 1; opacity: 0; transition: .15s; padding: 2px 4px; }
+  .link:hover .x, .link .x:focus-visible { opacity: 1; }
+  .link .x:hover { color: var(--accent); }
+  .empty { color: var(--ink-soft); font-size: 13px; padding: 6px 0; }
+
+  /* 待办 */
+  ul.tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  ul.tasks li { display: flex; align-items: center; gap: 10px; padding: 7px 4px; border-bottom: 1px dashed var(--line); }
+  ul.tasks li:last-child { border-bottom: 0; }
+  ul.tasks input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; flex: none; }
+  ul.tasks .txt { flex: 1; cursor: text; }
+  ul.tasks .done .txt { color: var(--ink-soft); text-decoration: line-through; }
+  .bar { height: 5px; background: var(--surface-2); border-radius: 999px; overflow: hidden; margin: 12px 0 4px; }
+  .bar i { display: block; height: 100%; background: var(--ok); width: 0; transition: width .3s; }
+
+  /* 便签 */
+  .notes { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .note {
+    border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 10px;
+    padding: 10px 11px; min-height: 96px; background: var(--surface-2); position: relative;
+    outline: none; font-size: 13.5px; white-space: pre-wrap; word-break: break-word;
+  }
+  .note:hover { border-color: var(--accent); }
+  .note .x { position: absolute; right: 4px; top: 2px; border: 0; background: none; cursor: pointer;
+    color: var(--ink-soft); opacity: 0; font-size: 15px; }
+  .note:hover .x, .note:focus-within .x { opacity: 1; }
+
+  /* 计时器 */
+  .timer { text-align: center; padding: 4px 0 0; }
+  .timer .big { font-size: 46px; font-weight: 700; letter-spacing: 2px; font-variant-numeric: tabular-nums; }
+  .timer .sub { color: var(--ink-soft); font-size: 13px; margin-bottom: 12px; }
+
+  footer { margin-top: 26px; text-align: center; color: var(--ink-soft); font-size: 12.5px; }
+
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .toast {
+    position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 20px);
+    background: var(--ink); color: var(--paper); padding: 9px 16px; border-radius: 999px;
+    font-size: 13px; opacity: 0; pointer-events: none; transition: .25s;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 860px) {
+    .grid { grid-template-columns: 1fr; }
+    header.top { align-items: flex-start; }
+    .clock { text-align: left; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="greet">
+      <h1 id="greeting">你好</h1>
+      <p id="dateline">—</p>
+    </div>
+    <div class="clock">
+      <b id="clock">--:--:--</b>
+      <span id="themebtn-wrap"><button class="btn" id="themeBtn" type="button">夜间模式</button></span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <div class="col">
+      <section class="card" aria-labelledby="me-h">
+        <h2 id="me-h">我的档案 <span class="tag">点击可编辑</span></h2>
+        <div class="id">
+          <div class="avatar" id="avatar" aria-hidden="true">我</div>
+          <div>
+            <div class="name" id="displayName" contenteditable="true" spellcheck="false" role="textbox" aria-label="显示名称">你的名字</div>
+            <div class="role" id="displayRole" contenteditable="true" spellcheck="false" role="textbox" aria-label="一句话简介">一句话介绍你自己</div>
+          </div>
+        </div>
+        <p class="hint">改动自动存在这台浏览器，换设备不会同步。</p>
+      </section>
+
+      <section class="card" aria-labelledby="todo-h">
+        <h2 id="todo-h">今日待办 <span class="tag" id="todoCount">0/0</span></h2>
+        <form class="row" id="taskForm">
+          <input id="taskInput" placeholder="要做什么…" aria-label="新待办事项" maxlength="120" />
+          <button class="btn primary" type="submit">添加</button>
+        </form>
+        <ul class="tasks" id="taskList"></ul>
+        <div class="bar"><i id="taskBar"></i></div>
+      </section>
+
+      <section class="card" aria-labelledby="timer-h">
+        <h2 id="timer-h">专注计时 <span class="tag" id="timerState">已停止</span></h2>
+        <div class="timer">
+          <div class="big" id="timerTime">25:00</div>
+          <div class="sub">完成一轮后自动记录</div>
+          <div class="row" style="justify-content:center">
+            <button class="btn primary" id="timerToggle" type="button">开始</button>
+            <button class="btn" id="timerReset" type="button">重置</button>
+          </div>
+          <p class="hint">今日完成 <b id="pomoCount">0</b> 轮</p>
+        </div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="card" aria-labelledby="nav-h">
+        <h2 id="nav-h">常用入口 <span class="tag" id="linkCount"></span></h2>
+        <div class="row">
+          <input id="searchInput" type="search" placeholder="搜索入口…" aria-label="搜索常用入口" />
+          <button class="btn" id="formToggle" type="button" aria-expanded="false">添加入口</button>
+        </div>
+        <form class="row" id="linkForm" hidden style="margin-top:10px">
+          <input id="linkName" placeholder="名称" aria-label="入口名称" maxlength="40" required />
+          <input id="linkUrl" type="url" placeholder="https://…" aria-label="入口网址" required />
+          <input id="linkGroup" placeholder="分组" aria-label="分组名" maxlength="20" list="groupList" />
+          <datalist id="groupList"></datalist>
+          <button class="btn primary" type="submit">保存</button>
+        </form>
+        <div id="linkGroups"></div>
+      </section>
+
+      <div class="cards">
+        <section class="card" aria-labelledby="note-h">
+          <h2 id="note-h">便签 <span class="tag">点击文字可修改</span></h2>
+          <div class="row">
+            <textarea id="noteInput" placeholder="记点什么…" aria-label="新便签内容" maxlength="500"></textarea>
+            <button class="btn primary" id="noteAdd" type="button" style="align-self:flex-start">贴上去</button>
+          </div>
+          <div class="notes" id="noteList"></div>
+        </section>
+
+        <section class="card" aria-labelledby="goal-h">
+          <h2 id="goal-h">近期目标 <span class="tag">勾选推进</span></h2>
+          <ul class="tasks" id="goalList"></ul>
+          <form class="row" id="goalForm">
+            <input id="goalInput" placeholder="新增目标…" aria-label="新目标" maxlength="80" />
+            <button class="btn primary" type="submit">添加</button>
+          </form>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer>本机数据 · 可随时清空：<button class="btn ghost" id="resetBtn" type="button">重置全部</button></footer>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+  var KEY = 'personal-portal-v1';
+  var $ = function (id) { return document.getElementById(id); };
+
+  var defaults = {
+    theme: 'light',
+    name: '你的名字',
+    role: '一句话介绍你自己',
+    links: [
+      { id: 'l1', name: 'GitHub', url: 'https://github.com', group: '工作' },
+      { id: 'l2', name: '邮箱', url: 'https://mail.google.com', group: '工作' },
+      { id: 'l3', name: '日历', url: 'https://calendar.google.com', group: '工作' },
+      { id: 'l4', name: '哔哩哔哩', url: 'https://www.bilibili.com', group: '休闲' },
+      { id: 'l5', name: '知乎', url: 'https://www.zhihu.com', group: '休闲' },
+      { id: 'l6', name: '维基百科', url: 'https://zh.wikipedia.org', group: '学习' },
+      { id: 'l7', name: 'MDN', url: 'https://developer.mozilla.org/zh-CN/', group: '学习' }
+    ],
+    tasks: [
+      { id: 't1', text: '整理今天最重要的三件事', done: false },
+      { id: 't2', text: '把常用入口换成你自己的', done: false }
+    ],
+    goals: [
+      { id: 'g1', text: '读完一本专业书', done: false },
+      { id: 'g2', text: '每周运动三次', done: false },
+      { id: 'g3', text: '做出自己的个人网站', done: true }
+    ],
+    notes: [{ id: 'n1', text: '示例便签：删掉它，写上你自己的内容。' }],
+    pomo: { date: today(), count: 0 }
+  };
+
+  var state = load();
+
+  function today() { var d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return structuredClone(defaults);
+      var data = JSON.parse(raw);
+      var merged = Object.assign(structuredClone(defaults), data);
+      if (!merged.pomo || merged.pomo.date !== today()) merged.pomo = { date: today(), count: 0 };
+      return merged;
+    } catch (e) {
+      return structuredClone(defaults);
+    }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch (e) { toast('浏览器阻止了本地存储，改动不会保存'); }
+  }
+  function uid() { return Math.random().toString(36).slice(2, 9); }
+
+  function toast(msg) {
+    var el = $('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { el.classList.remove('show'); }, 1800);
+  }
+
+  /* ---------- 时钟与问候 ---------- */
+  function tick() {
+    var d = new Date();
+    $('clock').textContent = [d.getHours(), d.getMinutes(), d.getSeconds()]
+      .map(function (n) { return String(n).padStart(2, '0'); }).join(':');
+    var h = d.getHours();
+    var word = h < 6 ? '凌晨了' : h < 11 ? '早上好' : h < 14 ? '中午好' : h < 18 ? '下午好' : h < 22 ? '晚上好' : '夜深了';
+    $('greeting').textContent = word + '，' + state.name;
+    $('dateline').textContent = d.getFullYear() + ' 年 ' + (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日 · 星期'
+      + '日一二三四五六'[d.getDay()] + ' · ' + state.role;
+  }
+
+  /* ---------- 主题 ---------- */
+  function applyTheme() {
+    document.documentElement.dataset.theme = state.theme;
+    $('themeBtn').textContent = state.theme === 'light' ? '夜间模式' : '日间模式';
+  }
+  $('themeBtn').addEventListener('click', function () {
+    state.theme = state.theme === 'light' ? 'dark' : 'light';
+    applyTheme(); save();
+  });
+
+  /* ---------- 档案 ---------- */
+  function bindProfile(el, field, isName) {
+    el.addEventListener('blur', function () {
+      var v = el.textContent.trim().slice(0, isName ? 24 : 60);
+      if (!v) { el.textContent = state[field]; return; }
+      state[field] = v;
+      if (isName) $('avatar').textContent = v.slice(0, 1);
+      save(); tick();
+    });
+    el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
+  }
+
+  /* ---------- 常用入口 ---------- */
+  function hostnameOf(url) {
+    try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return '链接'; }
+  }
+  function safeUrl(url) {
+    var u = String(url).trim();
+    if (/^(https?:|mailto:)/i.test(u)) return u;
+    return 'https://' + u.replace(/^\/+/, '');
+  }
+
+  function renderLinks() {
+    var q = $('searchInput').value.trim().toLowerCase();
+    var box = $('linkGroups');
+    box.innerHTML = '';
+    var hits = state.links.filter(function (l) {
+      return !q || (l.name + ' ' + l.url + ' ' + l.group).toLowerCase().indexOf(q) > -1;
+    });
+    $('linkCount').textContent = hits.length + ' 个';
+    if (!hits.length) {
+      box.innerHTML = '<p class="empty">' + (state.links.length ? '没有匹配的入口。' : '还没有入口，点上面「添加入口」开始。') + '</p>';
+      return;
+    }
+    var groups = {};
+    hits.forEach(function (l) { (groups[l.group || '未分组'] = groups[l.group || '未分组'] || []).push(l); });
+
+    Object.keys(groups).forEach(function (g) {
+      var t = document.createElement('p');
+      t.className = 'group-title';
+      t.textContent = g;
+      box.appendChild(t);
+      var wrap = document.createElement('div');
+      wrap.className = 'links';
+      groups[g].forEach(function (l) {
+        var a = document.createElement('a');
+        a.className = 'link';
+        a.href = safeUrl(l.url);
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        var fav = document.createElement('span');
+        fav.className = 'fav';
+        fav.textContent = l.name.slice(0, 1).toUpperCase();
+        fav.setAttribute('aria-hidden', 'true');
+        var tt = document.createElement('span');
+        tt.className = 't';
+        tt.textContent = l.name;
+        tt.title = hostnameOf(safeUrl(l.url));
+        var x = document.createElement('button');
+        x.className = 'x';
+        x.type = 'button';
+        x.textContent = '×';
+        x.setAttribute('aria-label', '删除 ' + l.name);
+        x.addEventListener('click', function (e) {
+          e.preventDefault();
+          state.links = state.links.filter(function (o) { return o.id !== l.id; });
+          save(); renderLinks(); renderGroupOptions();
+        });
+        a.append(fav, tt, x);
+        wrap.appendChild(a);
+      });
+      box.appendChild(wrap);
+    });
+  }
+  function renderGroupOptions() {
+    $('groupList').innerHTML = Object.keys(state.links.reduce(function (m, l) {
+      if (l.group) m[l.group] = 1; return m;
+    }, {})).map(function (g) { return '<option value="' + esc(g) + '"></option>'; }).join('');
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  $('searchInput').addEventListener('input', renderLinks);
+  $('formToggle').addEventListener('click', function () {
+    var f = $('linkForm');
+    f.hidden = !f.hidden;
+    $('formToggle').setAttribute('aria-expanded', String(!f.hidden));
+    if (!f.hidden) $('linkName').focus();
+  });
+  $('linkForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var name = $('linkName').value.trim(), url = $('linkUrl').value.trim();
+    if (!name || !url) return;
+    state.links.push({ id: uid(), name: name, url: safeUrl(url), group: $('linkGroup').value.trim() || '未分组' });
+    save(); renderLinks(); renderGroupOptions();
+    this.reset();
+    $('linkForm').hidden = true;
+    $('formToggle').setAttribute('aria-expanded', 'false');
+    toast('已添加「' + name + '」');
+  });
+
+  /* ---------- 任务列表通用 ---------- */
+  function taskList(listEl, items, onChange) {
+    listEl.innerHTML = '';
+    if (!items.length) {
+      var p = document.createElement('p');
+      p.className = 'empty';
+      p.textContent = '空的，加一条吧。';
+      listEl.appendChild(p);
+    }
+    items.forEach(function (it) {
+      var li = document.createElement('li');
+      li.className = it.done ? 'done' : '';
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = it.done;
+      cb.setAttribute('aria-label', '标记完成：' + it.text);
+      cb.addEventListener('change', function () { it.done = cb.checked; onChange(); });
+      var sp = document.createElement('span');
+      sp.className = 'txt';
+      sp.textContent = it.text;
+      sp.tabIndex = 0;
+      sp.title = '双击编辑';
+      sp.addEventListener('dblclick', function () {
+        var v = window.prompt('修改内容', it.text);
+        if (v && v.trim()) { it.text = v.trim().slice(0, 120); onChange(); }
+      });
+      var x = document.createElement('button');
+      x.className = 'btn ghost';
+      x.type = 'button';
+      x.textContent = '删除';
+      x.setAttribute('aria-label', '删除：' + it.text);
+      x.addEventListener('click', function () {
+        var arr = items.filter(function (o) { return o.id !== it.id; });
+        items.length = 0; items.push.apply(items, arr);
+        onChange();
+      });
+      li.append(cb, sp, x);
+      listEl.appendChild(li);
+    });
+  }
+
+  function renderTasks() {
+    taskList($('taskList'), state.tasks, function () {
+      save(); renderTasks();
+    });
+    var done = state.tasks.filter(function (t) { return t.done; }).length;
+    $('todoCount').textContent = done + '/' + state.tasks.length;
+    $('taskBar').style.width = (state.tasks.length ? done / state.tasks.length * 100 : 0) + '%';
+  }
+  $('taskForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var v = $('taskInput').value.trim();
+    if (!v) return;
+    state.tasks.unshift({ id: uid(), text: v.slice(0, 120), done: false });
+    $('taskInput').value = '';
+    save(); renderTasks();
+  });
+
+  function renderGoals() {
+    taskList($('goalList'), state.goals, function () { save(); renderGoals(); });
+  }
+  $('goalForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var v = $('goalInput').value.trim();
+    if (!v) return;
+    state.goals.push({ id: uid(), text: v.slice(0, 80), done: false });
+    $('goalInput').value = '';
+    save(); renderGoals();
+  });
+
+  /* ---------- 便签 ---------- */
+  function renderNotes() {
+    var box = $('noteList');
+    box.innerHTML = '';
+    if (!state.notes.length) {
+      box.innerHTML = '<p class="empty">还没有便签。</p>';
+      return;
+    }
+    state.notes.forEach(function (n) {
+      var d = document.createElement('div');
+      d.className = 'note';
+      d.contentEditable = 'true';
+      d.spellcheck = false;
+      d.textContent = n.text;
+      d.setAttribute('role', 'textbox');
+      d.setAttribute('aria-label', '便签');
+      d.addEventListener('blur', function () {
+        var v = d.textContent.trim();
+        if (v) { n.text = v.slice(0, 500); save(); } else { d.textContent = n.text; }
+      });
+      var x = document.createElement('button');
+      x.className = 'x';
+      x.type = 'button';
+      x.textContent = '×';
+      x.setAttribute('aria-label', '删除便签');
+      x.addEventListener('click', function () {
+        state.notes = state.notes.filter(function (o) { return o.id !== n.id; });
+        save(); renderNotes();
+      });
+      d.appendChild(x);
+      box.appendChild(d);
+    });
+  }
+  $('noteAdd').addEventListener('click', function () {
+    var v = $('noteInput').value.trim();
+    if (!v) { $('noteInput').focus(); return; }
+    state.notes.unshift({ id: uid(), text: v });
+    $('noteInput').value = '';
+    save(); renderNotes();
+  });
+
+  /* ---------- 专注计时器 ---------- */
+  var TOTAL = 25 * 60;
+  var left = TOTAL, running = false, tId = null;
+  function paintTimer() {
+    var m = Math.floor(left / 60), s = left % 60;
+    $('timerTime').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    $('timerToggle').textContent = running ? '暂停' : '开始';
+    $('timerState').textContent = running ? '进行中' : (left === TOTAL ? '已停止' : '已暂停');
+    $('pomoCount').textContent = state.pomo.count;
+  }
+  $('timerToggle').addEventListener('click', function () {
+    running = !running;
+    if (running) {
+      tId = setInterval(function () {
+        left--;
+        if (left <= 0) {
+          clearInterval(tId); running = false; left = TOTAL;
+          if (state.pomo.date !== today()) state.pomo = { date: today(), count: 0 };
+          state.pomo.count++; save();
+          toast('完成一轮专注，休息一下');
+        }
+        paintTimer();
+      }, 1000);
+    } else { clearInterval(tId); }
+    paintTimer();
+  });
+  $('timerReset').addEventListener('click', function () {
+    running = false; clearInterval(tId); left = TOTAL; paintTimer();
+  });
+
+  /* ---------- 重置 ---------- */
+  $('resetBtn').addEventListener('click', function () {
+    if (!window.confirm('确定清空这台浏览器里保存的全部内容，恢复成初始示例吗？')) return;
+    state = structuredClone(defaults);
+    save();
+    applyTheme();
+    $('displayName').textContent = state.name;
+    $('displayRole').textContent = state.role;
+    $('avatar').textContent = state.name.slice(0, 1);
+    renderAll();
+    toast('已重置');
+  });
+
+  function renderAll() {
+    tick(); renderLinks(); renderGroupOptions(); renderTasks(); renderGoals(); renderNotes(); paintTimer();
+  }
+
+  $('displayName').textContent = state.name;
+  $('displayRole').textContent = state.role;
+  $('avatar').textContent = state.name.slice(0, 1);
+  bindProfile($('displayName'), 'name', true);
+  bindProfile($('displayRole'), 'role', false);
+  applyTheme();
+  renderAll();
+  setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
